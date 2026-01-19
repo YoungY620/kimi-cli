@@ -30,6 +30,7 @@ if onedir_mode:
         pyz,
         a.scripts,
         [],
+        exclude_binaries=True,
         name="kimi",
         debug=False,
         bootloader_ignore_signals=False,

@@ -116,10 +116,10 @@ jobs:
 
           rm -f "$cert_path"
 
-      # Build without signing on non-macOS platforms
+      # Build without signing on non-macOS platforms (no directory isolation needed)
       - name: Build standalone binary
         if: runner.os != 'macOS'
-        run: make build-bin
+        run: uv run pyinstaller kimi.spec
 
       # macOS: Build both onefile and onedir versions (isolated paths)
       - name: Build standalone binary (macOS onefile)
@@ -267,7 +267,7 @@ jobs:
           tag = os.environ["TAG"]
           target = os.environ["TARGET"]
 
-          dist_dir = pathlib.Path("dist/onefile")
+          dist_dir = pathlib.Path("dist")
           artifacts_dir = pathlib.Path("artifacts")
           artifacts_dir.mkdir(parents=True, exist_ok=True)
 
