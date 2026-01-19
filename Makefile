@@ -103,6 +103,7 @@ build-bin: ## Build the standalone executable with PyInstaller (one-file mode).
 	@uv run pyinstaller kimi.spec
 build-bin-onedir: ## Build the standalone executable with PyInstaller (one-dir mode).
 	@echo "==> Building PyInstaller binary (one-dir)"
+	@rm -rf build
 	@PYINSTALLER_ONEDIR=1 uv run pyinstaller kimi.spec
 
 .PHONY: ai-test
