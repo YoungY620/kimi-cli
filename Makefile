@@ -100,10 +100,12 @@ build-kimi-sdk: ## Build the kimi-sdk sdist and wheel.
 	@uv build --package kimi-sdk --no-sources --out-dir dist/kimi-sdk
 build-bin: ## Build the standalone executable with PyInstaller (one-file mode).
 	@echo "==> Building PyInstaller binary (one-file)"
-	@uv run pyinstaller kimi.spec --workpath build/onefile --distpath dist/onefile
+	@uv run pyinstaller kimi.spec --workpath build/onefile
+	@mkdir -p dist/onefile && mv dist/kimi dist/onefile/
 build-bin-onedir: ## Build the standalone executable with PyInstaller (one-dir mode).
 	@echo "==> Building PyInstaller binary (one-dir)"
-	@PYINSTALLER_ONEDIR=1 uv run pyinstaller kimi.spec --workpath build/onedir --distpath dist/onedir
+	@PYINSTALLER_ONEDIR=1 uv run pyinstaller kimi.spec --workpath build/onedir
+	@mkdir -p dist/onedir && mv dist/kimi dist/onedir/
 
 .PHONY: ai-test
 ai-test: ## Run the test suite with Kimi CLI.
