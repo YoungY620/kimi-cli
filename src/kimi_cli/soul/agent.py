@@ -13,18 +13,12 @@ from kaos.path import KaosPath
 from kosong.tooling import Toolset
 
 from kimi_cli.agentspec import load_agent_spec
+from kimi_cli.auth.oauth import OAuthManager
 from kimi_cli.config import Config
 from kimi_cli.exception import MCPConfigError
 from kimi_cli.llm import LLM
 from kimi_cli.session import Session
-from kimi_cli.skill import (
-    Skill,
-    discover_skills_from_roots,
-    get_builtin_skills_dir,
-    get_claude_skills_dir,
-    get_skills_dir,
-    index_skills,
-)
+from kimi_cli.skill import Skill, discover_skills_from_roots, index_skills, resolve_skills_roots
 from kimi_cli.soul.approval import Approval
 from kimi_cli.soul.denwarenji import DenwaRenji
 from kimi_cli.soul.toolset import KimiToolset
@@ -70,6 +64,7 @@ class Runtime:
     """Agent runtime."""
 
     config: Config
+    oauth: OAuthManager
     llm: LLM | None  # we do not freeze the `Runtime` dataclass because LLM can be changed
     session: Session
     builtin_args: BuiltinSystemPromptArgs
@@ -82,10 +77,11 @@ class Runtime:
     @staticmethod
     async def create(
         config: Config,
+        oauth: OAuthManager,
         llm: LLM | None,
         session: Session,
         yolo: bool,
-        skills_dir: Path | None = None,
+        skills_dir: KaosPath | None = None,
     ) -> Runtime:
         ls_output, agents_md, environment = await asyncio.gather(
             list_directory(session.work_dir),
@@ -94,13 +90,8 @@ class Runtime:
         )
 
         # Discover and format skills
-        builtin_skills_dir = get_builtin_skills_dir()
-        if skills_dir is None:
-            skills_dir = get_skills_dir()
-            if not skills_dir.is_dir() and (claude_skills_dir := get_claude_skills_dir()).is_dir():
-                skills_dir = claude_skills_dir
-        skills_roots = [builtin_skills_dir, skills_dir]
-        skills = discover_skills_from_roots(skills_roots)
+        skills_roots = await resolve_skills_roots(session.work_dir, skills_dir_override=skills_dir)
+        skills = await discover_skills_from_roots(skills_roots)
         skills_by_name = index_skills(skills)
         logger.info("Discovered {count} skill(s)", count=len(skills))
         skills_formatted = "\n".join(
@@ -114,6 +105,7 @@ class Runtime:
 
         return Runtime(
             config=config,
+            oauth=oauth,
             llm=llm,
             session=session,
             builtin_args=BuiltinSystemPromptArgs(
@@ -134,11 +126,12 @@ class Runtime:
         """Clone runtime for fixed subagent."""
         return Runtime(
             config=self.config,
+            oauth=self.oauth,
             llm=self.llm,
             session=self.session,
             builtin_args=self.builtin_args,
             denwa_renji=DenwaRenji(),  # subagent must have its own DenwaRenji
-            approval=self.approval,
+            approval=self.approval.share(),
             labor_market=LaborMarket(),  # fixed subagent has its own LaborMarket
             environment=self.environment,
             skills=self.skills,
@@ -148,11 +141,12 @@ class Runtime:
         """Clone runtime for dynamic subagent."""
         return Runtime(
             config=self.config,
+            oauth=self.oauth,
             llm=self.llm,
             session=self.session,
             builtin_args=self.builtin_args,
             denwa_renji=DenwaRenji(),  # subagent must have its own DenwaRenji
-            approval=self.approval,
+            approval=self.approval.share(),
             labor_market=self.labor_market,  # dynamic subagent shares LaborMarket with main agent
             environment=self.environment,
             skills=self.skills,

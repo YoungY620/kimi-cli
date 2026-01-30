@@ -22,10 +22,10 @@ prepare-build: download-deps ## Sync dependencies for releases without workspace
 	@echo "==> Syncing dependencies for release builds (no sources)"
 	@uv sync --all-extras --all-packages --no-sources
 
-.PHONY: format format-kimi-cli format-kosong format-pykaos format-kimi-sdk
-format: format-kimi-cli format-kosong format-pykaos format-kimi-sdk ## Auto-format all workspace packages with ruff.
-format-kimi-cli: ## Auto-format Kimi CLI sources with ruff.
-	@echo "==> Formatting Kimi CLI sources"
+.PHONY: format format-kimi-cli format-kosong format-pykaos format-kimi-sdk format-web
+format: format-kimi-cli format-kosong format-pykaos format-kimi-sdk format-web ## Auto-format all workspace packages.
+format-kimi-cli: ## Auto-format Kimi Code CLI sources with ruff.
+	@echo "==> Formatting Kimi Code CLI sources"
 	@uv run ruff check --fix
 	@uv run ruff format
 format-kosong: ## Auto-format kosong sources with ruff.
@@ -40,11 +40,19 @@ format-kimi-sdk: ## Auto-format kimi-sdk sources with ruff.
 	@echo "==> Formatting kimi-sdk sources"
 	@uv run --project sdks/kimi-sdk --directory sdks/kimi-sdk ruff check --fix
 	@uv run --project sdks/kimi-sdk --directory sdks/kimi-sdk ruff format
+format-web: ## Auto-format web sources with npm run format.
+	@echo "==> Formatting web sources"
+	@if command -v npm >/dev/null 2>&1; then \
+		npm --prefix web run format; \
+	else \
+		echo "npm not found. Install Node.js (npm) to run web formatting."; \
+		exit 1; \
+	fi
 
 .PHONY: check check-kimi-cli check-kosong check-pykaos check-kimi-sdk
 check: check-kimi-cli check-kosong check-pykaos check-kimi-sdk ## Run linting and type checks for all packages.
-check-kimi-cli: ## Run linting and type checks for Kimi CLI.
-	@echo "==> Checking Kimi CLI (ruff + pyright + ty; ty is non-blocking)"
+check-kimi-cli: ## Run linting and type checks for Kimi Code CLI.
+	@echo "==> Checking Kimi Code CLI (ruff + pyright + ty; ty is non-blocking)"
 	@uv run ruff check
 	@uv run ruff format --check
 	@uv run pyright
@@ -71,9 +79,10 @@ check-kimi-sdk: ## Run linting and type checks for kimi-sdk.
 
 .PHONY: test test-kimi-cli test-kosong test-pykaos test-kimi-sdk
 test: test-kimi-cli test-kosong test-pykaos test-kimi-sdk ## Run all test suites.
-test-kimi-cli: ## Run Kimi CLI tests.
-	@echo "==> Running Kimi CLI tests"
+test-kimi-cli: ## Run Kimi Code CLI tests.
+	@echo "==> Running Kimi Code CLI tests"
 	@uv run pytest tests -vv
+	@uv run pytest tests_e2e -vv
 test-kosong: ## Run kosong tests (including doctests).
 	@echo "==> Running kosong tests"
 	@uv run --project packages/kosong --directory packages/kosong pytest --doctest-modules -vv
@@ -84,11 +93,13 @@ test-kimi-sdk: ## Run kimi-sdk tests.
 	@echo "==> Running kimi-sdk tests"
 	@uv run --project sdks/kimi-sdk --directory sdks/kimi-sdk pytest tests -vv
 
-.PHONY: build build-kimi-cli build-kosong build-pykaos build-kimi-sdk build-bin
-build: build-kimi-cli build-kosong build-pykaos build-kimi-sdk ## Build Python packages for release.
-build-kimi-cli: ## Build the kimi-cli sdist and wheel.
+.PHONY: build build-kimi-cli build-kosong build-pykaos build-kimi-sdk build-bin build-bin-onedir
+build: build-web build-kimi-cli build-kosong build-pykaos build-kimi-sdk ## Build Python packages for release.
+build-kimi-cli: build-web ## Build the kimi-cli and kimi-code sdists and wheels.
 	@echo "==> Building kimi-cli distributions"
 	@uv build --package kimi-cli --no-sources --out-dir dist
+	@echo "==> Building kimi-code distributions"
+	@uv build --package kimi-code --no-sources --out-dir dist
 build-kosong: ## Build the kosong sdist and wheel.
 	@echo "==> Building kosong distributions"
 	@uv build --package kosong --no-sources --out-dir dist/kosong
@@ -98,21 +109,32 @@ build-pykaos: ## Build the pykaos sdist and wheel.
 build-kimi-sdk: ## Build the kimi-sdk sdist and wheel.
 	@echo "==> Building kimi-sdk distributions"
 	@uv build --package kimi-sdk --no-sources --out-dir dist/kimi-sdk
-build-bin: ## Build the standalone executable with PyInstaller.
-	@echo "==> Building PyInstaller binary"
+build-web: ## Build web UI and sync into kimi-cli package.
+	@echo "==> Building web UI"
+	@python scripts/build_web.py
+build-bin: build-web ## Build the standalone executable with PyInstaller (one-file mode).
+	@echo "==> Building PyInstaller binary (one-file)"
 	@uv run pyinstaller kimi.spec
+	@mkdir -p dist/onefile
+	@if [ -f dist/kimi.exe ]; then mv dist/kimi.exe dist/onefile/; elif [ -f dist/kimi ]; then mv dist/kimi dist/onefile/; fi
+build-bin-onedir: build-web ## Build the standalone executable with PyInstaller (one-dir mode).
+	@echo "==> Building PyInstaller binary (one-dir)"
+	@rm -rf dist/onedir dist/kimi
+	@uv run pyinstaller kimi.spec
+	@if [ -f dist/kimi/kimi-exe.exe ]; then mv dist/kimi/kimi-exe.exe dist/kimi/kimi.exe; elif [ -f dist/kimi/kimi-exe ]; then mv dist/kimi/kimi-exe dist/kimi/kimi; fi
+	@mkdir -p dist/onedir && mv dist/kimi dist/onedir/
 
 .PHONY: ai-test
-ai-test: ## Run the test suite with Kimi CLI.
+ai-test: ## Run the test suite with Kimi Code CLI.
 	@echo "==> Running AI test suite"
 	@uv run tests_ai/scripts/run.py tests_ai
 
 .PHONY: gen-changelog gen-docs
-gen-changelog: ## Generate changelog with Kimi CLI.
+gen-changelog: ## Generate changelog with Kimi Code CLI.
 	@echo "==> Generating changelog"
-	@uv run kimi -c "$$(cat .kimi/prompts/gen-changelog.md)" --yolo
-gen-docs: ## Generate user docs with Kimi CLI.
+	@uv run kimi --yolo --prompt /skill:gen-changelog
+gen-docs: ## Generate user docs with Kimi Code CLI.
 	@echo "==> Generating user docs"
-	@uv run kimi -c "$$(cat .kimi/prompts/gen-docs.md)" --yolo
+	@uv run kimi --yolo --prompt /skill:gen-docs
 
 include src/kimi_cli/deps/Makefile

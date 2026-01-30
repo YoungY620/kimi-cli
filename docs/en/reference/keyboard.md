@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-Kimi CLI shell mode supports the following keyboard shortcuts.
+Kimi Code CLI shell mode supports the following keyboard shortcuts.
 
 ## Shortcuts list
 
@@ -11,7 +11,8 @@ Kimi CLI shell mode supports the following keyboard shortcuts.
 | `Ctrl-J` | Insert newline |
 | `Alt-Enter` | Insert newline (same as `Ctrl-J`) |
 | `Ctrl-V` | Paste (supports images) |
-| `Ctrl-D` | Exit Kimi CLI |
+| `Ctrl-E` | Expand full approval request content |
+| `Ctrl-D` | Exit Kimi Code CLI |
 | `Ctrl-C` | Interrupt current operation |
 
 ## Mode switching
@@ -57,16 +58,25 @@ When pasting images, a placeholder `[image:xxx.png,WxH]` is displayed. The actua
 Image pasting requires the model to support `image_in` capability.
 :::
 
+## Approval request operations
+
+### `Ctrl-E`: Expand full content
+
+When approval request preview content is truncated, press `Ctrl-E` to view the full content in a fullscreen pager. When preview is truncated, a "... (truncated, ctrl-e to expand)" hint is displayed.
+
+Useful for viewing longer shell commands or file diff content.
+
 ## Exit and interrupt
 
 ### `Ctrl-D`: Exit
 
-Press `Ctrl-D` when the input box is empty to exit Kimi CLI.
+Press `Ctrl-D` when the input box is empty to exit Kimi Code CLI.
 
 ### `Ctrl-C`: Interrupt
 
 - In input box: Clear current input
 - During agent execution: Interrupt current operation
+- During slash command execution: Interrupt command
 
 ## Completion operations
 

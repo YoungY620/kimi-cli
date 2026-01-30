@@ -11,16 +11,16 @@ const base = rawBase
 
 export default withMermaid(defineConfig({
   base,
-  title: 'Kimi CLI Docs',
-  description: 'Kimi CLI Documentation',
+  title: 'Kimi Code CLI Docs',
+  description: 'Kimi Code CLI Documentation',
 
   locales: {
     zh: {
       label: '简体中文',
       lang: 'zh-CN',
       link: '/zh/',
-      title: 'Kimi CLI 文档',
-      description: 'Kimi CLI 用户文档',
+      title: 'Kimi Code CLI 文档',
+      description: 'Kimi Code CLI 用户文档',
       themeConfig: {
         nav: [
           { text: '指南', link: '/zh/guides/getting-started', activeMatch: '/zh/guides/' },
@@ -77,6 +77,7 @@ export default withMermaid(defineConfig({
                 { text: 'kimi acp 子命令', link: '/zh/reference/kimi-acp' },
                 { text: 'kimi mcp 子命令', link: '/zh/reference/kimi-mcp' },
                 { text: 'kimi term 子命令', link: '/zh/reference/kimi-term' },
+                { text: 'kimi web 子命令', link: '/zh/reference/kimi-web' },
                 { text: '斜杠命令', link: '/zh/reference/slash-commands' },
                 { text: '键盘快捷键', link: '/zh/reference/keyboard' },
               ],
@@ -98,8 +99,8 @@ export default withMermaid(defineConfig({
       label: 'English',
       lang: 'en-US',
       link: '/en/',
-      title: 'Kimi CLI Docs',
-      description: 'Kimi CLI User Documentation',
+      title: 'Kimi Code CLI Docs',
+      description: 'Kimi Code CLI User Documentation',
       themeConfig: {
         nav: [
           { text: 'Guides', link: '/en/guides/getting-started', activeMatch: '/en/guides/' },
@@ -156,6 +157,7 @@ export default withMermaid(defineConfig({
                 { text: 'kimi acp Subcommand', link: '/en/reference/kimi-acp' },
                 { text: 'kimi mcp Subcommand', link: '/en/reference/kimi-mcp' },
                 { text: 'kimi term Subcommand', link: '/en/reference/kimi-term' },
+                { text: 'kimi web Subcommand', link: '/en/reference/kimi-web' },
                 { text: 'Slash Commands', link: '/en/reference/slash-commands' },
                 { text: 'Keyboard Shortcuts', link: '/en/reference/keyboard' },
               ],
@@ -177,6 +179,7 @@ export default withMermaid(defineConfig({
 
   themeConfig: {
     outline: [2, 3],
+    search: { provider: 'local' },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/MoonshotAI/kimi-cli' },
     ],

@@ -70,6 +70,13 @@
                 ripgrepy = prev.ripgrepy.overrideAttrs (old: {
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.setuptools ];
                 });
+                # Replace README symlink with real file for Nix builds.
+                "kimi-code" = prev."kimi-code".overrideAttrs (old: {
+                  postPatch = (old.postPatch or "") + ''
+                    rm -f README.md
+                    cp ${./README.md} README.md
+                  '';
+                });
               };
               pythonSet = (callPackage pyproject-nix.build.packages { inherit python; }).overrideScope (
                 lib.composeManyExtensions [
@@ -107,7 +114,7 @@
               doInstallCheck = true;
 
               meta = {
-                description = "Kimi CLI is a new CLI agent that can help you with your software development tasks and terminal operations";
+                description = "Kimi Code CLI is a new CLI agent that can help you with your software development tasks and terminal operations";
                 license = lib.licenses.asl20;
                 sourceProvenance = with lib.sourceTypes; [ fromSource ];
                 maintainers = with lib.maintainers; [

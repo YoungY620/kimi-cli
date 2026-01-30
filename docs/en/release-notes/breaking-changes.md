@@ -1,8 +1,28 @@
-# Breaking Changes and Migration
+# Breaking changes and migration
 
-This page documents breaking changes in Kimi CLI releases and provides migration guidance.
+This page documents breaking changes in Kimi Code CLI releases and provides migration guidance.
 
 ## Unreleased
+
+## 1.3
+
+No breaking changes.
+
+## 0.81 - Prompt Flow replaced by Flow Skills
+
+### `--prompt-flow` option removed
+
+The `--prompt-flow` CLI option has been removed. Use flow skills instead.
+
+- **Affected**: Scripts and automation using `--prompt-flow` to load Mermaid/D2 flowcharts
+- **Migration**: Create a flow skill with embedded Agent Flow in `SKILL.md` and invoke via `/flow:<skill-name>`
+
+### `/begin` command replaced
+
+The `/begin` slash command has been replaced with `/flow:<skill-name>` commands.
+
+- **Affected**: Users who used `/begin` to start a loaded Prompt Flow
+- **Migration**: Use `/flow:<skill-name>` to invoke flow skills directly
 
 ## 0.77 - Thinking mode and CLI option changes
 
@@ -37,14 +57,14 @@ The `--acp` option has been deprecated. Use the `kimi acp` subcommand instead.
 - **Affected**: Scripts and IDE configurations using `kimi --acp`
 - **Migration**: `kimi --acp` → `kimi acp`
 
-## 0.66 - Config File and Provider Type
+## 0.66 - Config file and provider type
 
 ### Config file format migration
 
 The config file format has been migrated from JSON to TOML.
 
 - **Affected**: Users with `~/.kimi/config.json`
-- **Migration**: Kimi CLI will automatically read the old JSON config, but manual migration to TOML is recommended
+- **Migration**: Kimi Code CLI will automatically read the old JSON config, but manual migration to TOML is recommended
 - **New location**: `~/.kimi/config.toml`
 
 JSON config example:
@@ -81,7 +101,7 @@ The provider type for Gemini Developer API has been renamed from `google_genai` 
 - **Migration**: Change the `type` value to `"gemini"`
 - **Compatibility**: `google_genai` still works but updating is recommended
 
-## 0.57 - Tool Changes
+## 0.57 - Tool changes
 
 ### `Shell` tool
 
@@ -104,7 +124,7 @@ The `PatchFile` tool has been removed.
 - **Affected**: Agent configs using the `PatchFile` tool
 - **Alternative**: Use `StrReplaceFile` tool for file modifications
 
-## 0.52 - CLI Option Changes
+## 0.52 - CLI option changes
 
 ### `--ui` option removed
 
@@ -116,7 +136,7 @@ The `--ui` option has been removed in favor of separate flags.
   - `--ui acp` → `kimi acp`
   - `--ui wire` → `--wire`
 
-## 0.42 - Keyboard Shortcut Changes
+## 0.42 - Keyboard shortcut changes
 
 ### Mode switch shortcut
 
@@ -125,7 +145,7 @@ The agent/shell mode toggle shortcut has changed from `Ctrl-K` to `Ctrl-X`.
 - **Affected**: Users accustomed to using `Ctrl-K` for mode switching
 - **Migration**: Use `Ctrl-X` to toggle modes
 
-## 0.27 - CLI Option Rename
+## 0.27 - CLI option rename
 
 ### `--agent` option renamed
 
@@ -135,7 +155,7 @@ The `--agent` option has been renamed to `--agent-file`.
 - **Migration**: Change `--agent` to `--agent-file`
 - **Note**: `--agent` is now used to specify built-in agents (e.g., `default`, `okabe`)
 
-## 0.25 - Package Name Change
+## 0.25 - Package name change
 
 ### Package renamed from `ensoul` to `kimi-cli`
 

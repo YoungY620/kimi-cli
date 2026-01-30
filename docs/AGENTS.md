@@ -56,7 +56,7 @@ Term mapping (Chinese <-> English, and proper noun handling):
 | Thinking 模式 | thinking mode | yes | no |
 | MCP | MCP | yes | yes |
 | ACP | ACP | yes | yes |
-| Kimi CLI | Kimi CLI | yes | yes |
+| Kimi Code CLI | Kimi Code CLI | yes | yes |
 | Agent Skills | Agent Skills | yes | yes |
 | Skill | skill | yes | no |
 | 系统提示词 | system prompt | no | no |
@@ -81,6 +81,7 @@ Term mapping (Chinese <-> English, and proper noun handling):
 | 供应商 | provider | no | no |
 | Prompt Flow | Prompt Flow | yes | yes |
 | Ralph 循环 | Ralph Loop | yes | yes |
+| Diff | diff | yes | no |
 
 JetBrains IDE terminology (Chinese UI translations):
 
@@ -142,9 +143,9 @@ Outline prompt:
 ```markdown
 ## Install and upgrade
 
-Kimi CLI requires Python 3.12+. We recommend using uv for installation and management.
+Kimi Code CLI requires Python 3.12+. We recommend using uv for installation and management.
 
-If you haven't installed uv yet, please refer to the uv installation docs first. Install Kimi CLI:
+If you haven't installed uv yet, please refer to the uv installation docs first. Install Kimi Code CLI:
 
 (code block)
 

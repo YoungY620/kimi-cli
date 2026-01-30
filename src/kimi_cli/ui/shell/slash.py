@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING, Any
 
 from prompt_toolkit.shortcuts.choice_input import ChoiceInput
 
+from kimi_cli.auth.platforms import get_platform_name_for_provider, refresh_managed_models
 from kimi_cli.cli import Reload
 from kimi_cli.config import load_config, save_config
 from kimi_cli.exception import ConfigError
-from kimi_cli.platforms import get_platform_name_for_provider, refresh_managed_models
 from kimi_cli.session import Session
 from kimi_cli.soul.kimisoul import KimiSoul
 from kimi_cli.ui.shell.console import console
@@ -92,7 +92,7 @@ def help(app: Shell, args: str):
     renderables.append(
         BulletColumns(
             Text(
-                "Sure, Kimi CLI is ready to help! "
+                "Sure, Kimi is ready to help! "
                 "Just send me messages and I will help you get things done!"
             ),
         )
@@ -106,6 +106,7 @@ def help(app: Shell, args: str):
         else:
             commands.append(cmd)
 
+    renderables.append(section("Keyboard shortcuts", _KEYBOARD_SHORTCUTS, "yellow"))
     renderables.append(
         section(
             "Slash commands",
@@ -121,7 +122,6 @@ def help(app: Shell, args: str):
                 "cyan",
             )
         )
-    renderables.append(section("Keyboard shortcuts", _KEYBOARD_SHORTCUTS, "yellow"))
 
     with console.pager(styles=True):
         console.print(Group(*renderables))
@@ -149,7 +149,7 @@ async def model(app: Shell, args: str):
     await refresh_managed_models(config)
 
     if not config.models:
-        console.print('[yellow]No models configured, send "/setup" to configure.[/yellow]')
+        console.print('[yellow]No models configured, send "/login" to login.[/yellow]')
         return
 
     if not config.is_from_default_location:
@@ -292,7 +292,7 @@ def changelog(app: Shell, args: str):
 @registry.command
 @shell_mode_registry.command
 def feedback(app: Shell, args: str):
-    """Submit feedback to make Kimi CLI better"""
+    """Submit feedback to make Kimi Code CLI better"""
     import webbrowser
 
     ISSUE_URL = "https://github.com/MoonshotAI/kimi-cli/issues"
@@ -304,10 +304,9 @@ def feedback(app: Shell, args: str):
 @registry.command(aliases=["reset"])
 async def clear(app: Shell, args: str):
     """Clear the context"""
-    soul = _ensure_kimi_soul(app)
-    if soul is None:
+    if _ensure_kimi_soul(app) is None:
         return
-    await soul.context.clear()
+    await app.run_soul_command("/clear")
     raise Reload()
 
 
@@ -416,6 +415,7 @@ async def mcp(app: Shell, args: str):
 
 from . import (  # noqa: E402
     debug,  # noqa: F401 # type: ignore[reportUnusedImport]
+    oauth,  # noqa: F401 # type: ignore[reportUnusedImport]
     setup,  # noqa: F401 # type: ignore[reportUnusedImport]
     update,  # noqa: F401 # type: ignore[reportUnusedImport]
     usage,  # noqa: F401 # type: ignore[reportUnusedImport]
