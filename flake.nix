@@ -116,9 +116,43 @@
                 mainProgram = "kimi";
               };
             });
+          # kimi-cli with memo MCP enabled by default
+          kimi-cli-memo =
+            let
+              inherit (pkgs) writeText;
+              mcp-config = writeText "memo-mcp.json" ''
+                {
+                  "mcpServers": {
+                    "memo": {
+                      "command": "memo",
+                      "args": ["--mcp"]
+                    }
+                  }
+                }
+              '';
+            in
+            stdenvNoCC.mkDerivation {
+              pname = "kimi-cli-memo";
+              inherit (kimi-cli) version;
+
+              dontUnpack = true;
+              nativeBuildInputs = [ makeWrapper ];
+
+              installPhase = ''
+                runHook preInstall
+                mkdir -p $out/bin
+                makeWrapper ${kimi-cli}/bin/kimi $out/bin/kimi \
+                  --add-flags "--mcp-config-file ${mcp-config}"
+                runHook postInstall
+              '';
+
+              meta = kimi-cli.meta // {
+                description = "Kimi CLI with memo MCP enabled by default";
+              };
+            };
         in
         {
-          inherit kimi-cli;
+          inherit kimi-cli kimi-cli-memo;
           default = kimi-cli;
         }
       );
