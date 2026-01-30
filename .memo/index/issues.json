@@ -1,0 +1,273 @@
+{
+  "issues": [
+    {
+      "tags": ["todo"],
+      "title": "Move AGENTS_MD from system prompt to first message",
+      "description": "KIMI_AGENTS_MD is currently injected into the system prompt template. The TODO suggests moving it to the first user message instead, which would make it more visible in the conversation history and potentially easier to update mid-conversation.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/agent.py",
+          "keyword": "TODO: move to first message",
+          "line": 49
+        }
+      ]
+    },
+    {
+      "tags": ["todo"],
+      "title": "Remove legacy tool dependencies from load_agent",
+      "description": "The tool_deps dictionary in load_agent() includes individual dependencies like Config, Session, Approval, etc. The TODO suggests using only Runtime as the single dependency source instead of exposing all these separate types.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/agent.py",
+          "keyword": "TODO: remove all the following",
+          "line": 233
+        }
+      ]
+    },
+    {
+      "tags": ["todo"],
+      "title": "Remove in_background parameter from MCP loading",
+      "description": "load_mcp_tools() has an in_background parameter that defaults to True. The TODO suggests always loading in background and removing this parameter for simplicity.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/toolset.py",
+          "keyword": "TODO(rc): remove `in_background`",
+          "line": 175
+        }
+      ]
+    },
+    {
+      "tags": ["todo"],
+      "title": "Persist auto-approve actions across sessions",
+      "description": "The _auto_approve_actions set in Approval class is currently in-memory only. Actions approved with 'approve_for_session' are not persisted and reset when session restarts.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/approval.py",
+          "keyword": "TODO: persist across sessions",
+          "line": 32
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Wire message decoupling from Soul approval",
+      "description": "ApprovalRequest in wire/types.py is a copy of the soul's approval.Request, intentionally not importing from soul to avoid dependency from Wire to Soul. This maintains clean architectural separation between the communication layer (Wire) and the agent logic (Soul).",
+      "locations": [
+        {
+          "file": "src/kimi_cli/wire/types.py",
+          "keyword": "a copy of",
+          "line": 156
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Subagents have isolated DenwaRenji and LaborMarket",
+      "description": "When creating runtime for fixed subagents, a fresh DenwaRenji is created (so D-Mail doesn't leak between agents), and a fresh LaborMarket (so subagents can't spawn more subagents from main agent's pool). Dynamic subagents share LaborMarket with main agent.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/agent.py",
+          "keyword": "copy_for_fixed_subagent",
+          "line": 133
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision", "compromise"],
+      "title": "Context file rotation instead of in-place editing",
+      "description": "When reverting to checkpoint or clearing context, the file is rotated (renamed with suffix) rather than edited in place. This preserves history for debugging and prevents data loss, but accumulates old context files over time.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/context.py",
+          "keyword": "rotate the context file",
+          "line": 99
+        }
+      ]
+    },
+    {
+      "tags": ["bug", "compromise"],
+      "title": "Subagent approval task can steal main agent's requests",
+      "description": "When running subagents, there's a race condition where a subagent's approval task might steal approval requests meant for the main agent. The current workaround is noted in _SubWire which redirects approval requests to root wire.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/kimisoul.py",
+          "keyword": "FIXME: It's possible that a subagent's approval",
+          "line": 328
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Reserved tokens constant for context management",
+      "description": "RESERVED_TOKENS = 50,000 is used as buffer when checking if context needs compaction. This ensures there's always room for the next response and tool calls without hitting context limit mid-generation.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/kimisoul.py",
+          "keyword": "RESERVED_TOKENS",
+          "line": 64
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Checkpoint with user message for D-Mail",
+      "description": "Checkpoints can optionally add a system message with checkpoint ID to user messages. This is enabled when SendDMail tool is present, creating visible markers in conversation for the D-Mail time travel feature.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/kimisoul.py",
+          "keyword": "_checkpoint_with_user_message",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Wire SPMC architecture using BroadcastQueue",
+      "description": "Wire uses a single-producer multiple-consumer (SPMC) pattern via BroadcastQueue. This allows multiple UI components to subscribe to Wire messages simultaneously. The soul side publishes to BroadcastQueues, and each UI side creates a subscription via subscribe(). This enables features like recording to wire.jsonl while displaying in shell UI concurrently.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/wire/__init__.py",
+          "keyword": "WireMessageQueue = BroadcastQueue",
+          "line": 18
+        },
+        {
+          "file": "src/kimi_cli/utils/broadcast.py",
+          "keyword": "class BroadcastQueue",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Wire merge buffer for streaming optimization",
+      "description": "WireSoulSide maintains a _merge_buffer that accumulates MergeableMixin messages (like streaming text parts) before sending complete messages to the merged queue. This reduces message overhead while still allowing raw streaming to raw queue.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/wire/__init__.py",
+          "keyword": "_merge_buffer",
+          "line": 69
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "ACP model ID encoding includes thinking flag",
+      "description": "Model IDs in ACP protocol encode thinking mode by appending ',thinking' suffix. _ModelIDConv class handles conversion between Kimi's (model_key, thinking_bool) tuple and ACP's single model_id string.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/acp/server.py",
+          "keyword": "_ModelIDConv",
+          "line": 292
+        }
+      ]
+    },
+    {
+      "tags": ["todo"],
+      "title": "Replay session history in ACP load_session",
+      "description": "When loading an existing session in ACP server, the TODO notes that session history replay is not yet implemented. Currently just loads the session without sending past messages to IDE.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/acp/server.py",
+          "keyword": "TODO: replay session history",
+          "line": 192
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Print mode implies YOLO mode",
+      "description": "When running in print mode (--print flag), YOLO mode is automatically enabled because there's no interactive user to approve actions. This is documented in CLI help and enforced in the run logic.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/cli/__init__.py",
+          "keyword": "print mode implies yolo",
+          "line": 497
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Subagent continuation for brief responses",
+      "description": "Task tool checks if subagent final response is too brief (<200 chars). If so, it runs one more turn with CONTINUE_PROMPT asking for more detail. This improves quality of delegated task summaries.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/tools/multiagent/task.py",
+          "keyword": "MAX_CONTINUE_ATTEMPTS",
+          "line": 24
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "JSON-to-TOML config migration",
+      "description": "Old config.json files are automatically migrated to config.toml format on first load. Original JSON is backed up as config.json.bak. This supports the transition to TOML as the preferred config format.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/config.py",
+          "keyword": "_migrate_json_config_to_toml",
+          "line": 265
+        }
+      ]
+    },
+    {
+      "tags": ["todo"],
+      "title": "Restrict SubagentEvent types",
+      "description": "SubagentEvent wraps any Event from subagent, but TODO notes that some event types like ApprovalRequest should perhaps be excluded from the wrapping since they're handled specially at root wire level.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/wire/types.py",
+          "keyword": "TODO: maybe restrict",
+          "line": 99
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Skill commands use skill: prefix",
+      "description": "Skills are registered as slash commands with 'skill:' prefix (e.g., /skill:kimi-cli-help). This namespacing prevents collisions with built-in commands while making skills discoverable via /help.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/kimisoul.py",
+          "keyword": "SKILL_COMMAND_PREFIX",
+          "line": 66
+        }
+      ]
+    },
+    {
+      "tags": ["todo", "optimization"],
+      "title": "Compaction strategy configurable",
+      "description": "SimpleCompaction is hardcoded in KimiSoul with a TODO suggesting it should be configurable and composable, allowing different compaction strategies based on use case.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/kimisoul.py",
+          "keyword": "TODO: maybe configurable",
+          "line": 112
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "MCP tool timeout via ToolError",
+      "description": "When MCP tool call times out, MCPTool returns a ToolError with message suggesting the timeout config is too low, rather than raising an exception. This allows agent to recover gracefully.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/soul/toolset.py",
+          "keyword": "Timeout while calling MCP tool",
+          "line": 380
+        }
+      ]
+    },
+    {
+      "tags": ["design-decision"],
+      "title": "Python 3.13 Queue compatibility via aioqueue",
+      "description": "The aioqueue module provides Queue with shutdown() support that works on both Python 3.13+ (using native asyncio.QueueShutDown) and older versions (custom implementation). This ensures consistent behavior across Python versions.",
+      "locations": [
+        {
+          "file": "src/kimi_cli/utils/aioqueue.py",
+          "keyword": "sys.version_info >= (3, 13)",
+          "line": 6
+        }
+      ]
+    }
+  ]
+}

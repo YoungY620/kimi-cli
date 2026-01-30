@@ -1,0 +1,282 @@
+{
+  "external": [
+    {
+      "type": "cli",
+      "name": "kimi [OPTIONS] [PROMPT]",
+      "params": "--model, --thinking, --yolo, --prompt, --print, --acp, --wire, --session, --continue, --agent-file, --mcp-config, --work-dir, --max-steps-per-turn, --prompt-flow, etc.",
+      "description": "Main CLI entry point. Runs interactive shell by default, or print/acp/wire modes with flags."
+    },
+    {
+      "type": "cli",
+      "name": "kimi info",
+      "params": "Subcommands for version, config, session info",
+      "description": "Display information about Kimi CLI configuration and sessions."
+    },
+    {
+      "type": "cli",
+      "name": "kimi mcp",
+      "params": "add, remove, list, auth subcommands",
+      "description": "Manage MCP server configurations."
+    },
+    {
+      "type": "cli",
+      "name": "kimi acp",
+      "params": "None",
+      "description": "Run Kimi CLI as ACP server over stdio for IDE integrations."
+    },
+    {
+      "type": "cli",
+      "name": "kimi term",
+      "params": "Pass-through to toad TUI",
+      "description": "Run Toad TUI backed by Kimi CLI ACP server."
+    },
+    {
+      "type": "other",
+      "name": "ACP Protocol (stdio)",
+      "params": "JSON-RPC messages: initialize, new_session, prompt, cancel, load_session, list_sessions, set_session_model",
+      "description": "Agent Communication Protocol for IDE integrations like Cursor. Provides session management, prompting, and model selection over stdio."
+    },
+    {
+      "type": "other",
+      "name": "Wire Protocol (stdio)",
+      "params": "JSON messages: TurnBegin, StepBegin, ContentPart, ToolCall, ToolResult, ApprovalRequest, etc.",
+      "description": "Streaming protocol for external integrations. Read user prompts from stdin, write Wire events to stdout."
+    },
+    {
+      "type": "env",
+      "name": "KIMI_API_KEY",
+      "params": "API key string",
+      "description": "Override API key for Kimi provider."
+    },
+    {
+      "type": "env",
+      "name": "KIMI_BASE_URL",
+      "params": "URL string",
+      "description": "Override base URL for Kimi API."
+    },
+    {
+      "type": "env",
+      "name": "KIMI_MODEL_NAME",
+      "params": "Model name string",
+      "description": "Override model name for Kimi provider."
+    },
+    {
+      "type": "env",
+      "name": "KIMI_CLI_NO_AUTO_UPDATE",
+      "params": "Any non-empty value (e.g., '1')",
+      "description": "Disables automatic update checks. Set by Nix flake wrapper since Nix handles updates."
+    },
+    {
+      "type": "cli",
+      "name": "nix build .#kimi-cli",
+      "params": "Optional: .#kimi-cli-memo for memo MCP variant",
+      "description": "Build kimi-cli using Nix flake. Produces reproducible build with Python 3.13 and ripgrep bundled."
+    },
+    {
+      "type": "cli",
+      "name": "nix run .#kimi-cli",
+      "params": "-- [kimi args]",
+      "description": "Run kimi-cli directly via Nix without installing. Useful for trying out or one-off usage."
+    },
+    {
+      "type": "filesystem",
+      "name": "~/.kimi/config.toml",
+      "params": "TOML config with providers, models, loop_control, services",
+      "description": "Main configuration file. Stores LLM provider credentials, model definitions, and runtime settings."
+    },
+    {
+      "type": "filesystem",
+      "name": "~/.kimi/mcp.json",
+      "params": "MCP config JSON with mcpServers map",
+      "description": "Global MCP server configuration file."
+    },
+    {
+      "type": "filesystem",
+      "name": "~/.kimi/sessions/<work_dir_hash>/<session_id>/",
+      "params": "context.jsonl, wire.jsonl files",
+      "description": "Session storage directory. Contains conversation history and wire recording."
+    },
+    {
+      "type": "filesystem",
+      "name": "AGENTS.md",
+      "params": "Markdown file in project root",
+      "description": "Project documentation injected into agent system prompt as KIMI_AGENTS_MD."
+    },
+    {
+      "type": "filesystem",
+      "name": "Agent YAML spec",
+      "params": "name, extend, tools, exclude_tools, subagents, system_prompt_path, system_prompt_args",
+      "description": "Agent specification files (agent.yaml) defining tools, prompts, and subagents."
+    },
+    {
+      "type": "filesystem",
+      "name": "SKILL.md",
+      "params": "Markdown with skill instructions",
+      "description": "Skill definition files in ~/.kimi/skills/ directories. Registered as slash commands."
+    },
+    {
+      "type": "cli",
+      "name": "tests_ai/scripts/run.py [tests_dir]",
+      "params": "tests_dir: path to directory containing test_*.md files (default: tests_ai)",
+      "description": "Runs AI-driven audits using Kimi CLI agents. Executes main.yaml agent which spawns workers for each test file, then parses report.json and emits pytest-style PASSED/FAILED results with colored summary."
+    },
+    {
+      "type": "filesystem",
+      "name": "test_*.md (AI test specs)",
+      "params": "Markdown with # Test Name, ## Case Name sections, each with **Scope** and **Requirements** subsections",
+      "description": "AI test specification files in tests_ai/. Defines invariants to audit in the codebase. Worker agents read these and report pass/fail per case."
+    },
+    {
+      "type": "filesystem",
+      "name": "tests_ai/report.json",
+      "params": "JSON array: [{file, name, cases: [{name, pass: bool}]}]",
+      "description": "Output file generated by main agent after audit. Contains pass/fail results for each test case. Parsed by run.py for final output."
+    },
+    {
+      "type": "filesystem",
+      "name": ".kimi/prompts/*.md",
+      "params": "Markdown files with workflow instructions in Chinese",
+      "description": "Project-local prompt templates for developer workflows. Loaded by developers to guide Kimi CLI through release, PR, changelog, and documentation tasks."
+    }
+  ],
+  "internal": [
+    {
+      "type": "callback",
+      "name": "KimiCLI.create(session, config, model_name, ...)",
+      "params": "session: Session, config: Config|Path|None, model_name: str|None, thinking: bool|None, yolo: bool, agent_file: Path|None, mcp_configs: list, ...",
+      "description": "Factory method to create KimiCLI instance. Loads config, creates LLM, loads agent, restores context."
+    },
+    {
+      "type": "callback",
+      "name": "KimiSoul.run(user_input)",
+      "params": "user_input: str | list[ContentPart]",
+      "description": "Main agent loop entry. Handles slash commands or runs agent turn with tool calls until completion."
+    },
+    {
+      "type": "callback",
+      "name": "run_soul(soul, user_input, ui_loop_fn, cancel_event)",
+      "params": "soul: Soul, user_input: str|list, ui_loop_fn: UILoopFn, cancel_event: asyncio.Event, wire_file: Path|None",
+      "description": "Connects soul to UI via Wire. Runs soul and UI loop concurrently, handles cancellation."
+    },
+    {
+      "type": "callback",
+      "name": "wire_send(msg)",
+      "params": "msg: WireMessage (Event | Request)",
+      "description": "Send message from soul to UI over current Wire. Used by all soul output operations."
+    },
+    {
+      "type": "callback",
+      "name": "Wire.ui_side(merge: bool) -> WireUISide",
+      "params": "merge: bool - Whether to merge Wire messages as much as possible",
+      "description": "Factory method to create a new UI-side subscriber to the Wire. Returns a WireUISide that receives messages via BroadcastQueue subscription. Multiple UI sides can subscribe to the same Wire."
+    },
+    {
+      "type": "callback",
+      "name": "BroadcastQueue.subscribe() -> Queue[T]",
+      "params": "None",
+      "description": "Create a new subscription queue that receives all published items. Used by Wire for SPMC message distribution."
+    },
+    {
+      "type": "callback",
+      "name": "BroadcastQueue.publish(item: T)",
+      "params": "item: T - The item to publish to all subscribers",
+      "description": "Publish an item to all subscription queues. Used by WireSoulSide to broadcast messages."
+    },
+    {
+      "type": "callback",
+      "name": "KimiToolset.load_tools(tool_paths, dependencies)",
+      "params": "tool_paths: list[str] like 'module:ClassName', dependencies: dict[type, Any]",
+      "description": "Load callable tools by import path with dependency injection for Runtime, Session, Approval, etc."
+    },
+    {
+      "type": "callback",
+      "name": "KimiToolset.load_mcp_tools(mcp_configs, runtime)",
+      "params": "mcp_configs: list[MCPConfig], runtime: Runtime, in_background: bool",
+      "description": "Connect to MCP servers and load their tools. Runs in background by default."
+    },
+    {
+      "type": "callback",
+      "name": "Approval.request(sender, action, description, display)",
+      "params": "sender: str, action: str, description: str, display: list[DisplayBlock]|None",
+      "description": "Request user approval for an action. Returns True if approved. Called by tools."
+    },
+    {
+      "type": "callback",
+      "name": "Context.checkpoint(add_user_message)",
+      "params": "add_user_message: bool",
+      "description": "Create a checkpoint in conversation history for D-Mail time travel feature."
+    },
+    {
+      "type": "callback",
+      "name": "Context.revert_to(checkpoint_id)",
+      "params": "checkpoint_id: int",
+      "description": "Revert context to previous checkpoint. Used by D-Mail feature to undo actions."
+    },
+    {
+      "type": "event_bus",
+      "name": "TurnBegin",
+      "params": "user_input: str | list[ContentPart]",
+      "description": "Wire event indicating start of a new agent turn."
+    },
+    {
+      "type": "event_bus",
+      "name": "StepBegin",
+      "params": "n: int (step number)",
+      "description": "Wire event indicating start of a new step within a turn."
+    },
+    {
+      "type": "event_bus",
+      "name": "ContentPart (TextPart, ThinkPart, ImageURLPart, ...)",
+      "params": "Various content fields",
+      "description": "Wire events for streaming LLM output content."
+    },
+    {
+      "type": "event_bus",
+      "name": "ToolResult",
+      "params": "tool_call_id: str, return_value: ToolReturnValue",
+      "description": "Wire event with tool execution result."
+    },
+    {
+      "type": "event_bus",
+      "name": "ApprovalRequest",
+      "params": "id: str, tool_call_id: str, sender: str, action: str, description: str, display: list",
+      "description": "Wire request for user approval. UI must resolve with approve/reject."
+    },
+    {
+      "type": "event_bus",
+      "name": "SubagentEvent",
+      "params": "task_tool_call_id: str, event: Event",
+      "description": "Wire event wrapping events from a subagent spawned by Task tool."
+    },
+    {
+      "type": "callback",
+      "name": "load_agent(agent_file, runtime, mcp_configs)",
+      "params": "agent_file: Path, runtime: Runtime, mcp_configs: list",
+      "description": "Load agent from YAML spec. Loads system prompt, tools, and subagents."
+    },
+    {
+      "type": "callback",
+      "name": "Runtime.create(config, llm, session, yolo, skills_dir)",
+      "params": "config: Config, llm: LLM|None, session: Session, yolo: bool, skills_dir: Path|None",
+      "description": "Create Runtime with environment detection, skills discovery, and builtin args setup."
+    },
+    {
+      "type": "callback",
+      "name": "SlashCommandRegistry.command()",
+      "params": "name: str, aliases: list[str]",
+      "description": "Decorator to register slash commands for soul or shell level."
+    },
+    {
+      "type": "callback",
+      "name": "kimi_sdk.generate(chat_provider, system_prompt, tools, history, on_message_part?)",
+      "params": "chat_provider: Kimi, system_prompt: str, tools: list[Tool], history: list[Message], on_message_part: Callable[[StreamedMessagePart], None] | None",
+      "description": "(kimi-sdk) Async function for chat completion. Creates completion stream, merges message parts into Message with optional TokenUsage. Optional streaming callback for real-time output."
+    },
+    {
+      "type": "callback",
+      "name": "kimi_sdk.step(chat_provider, system_prompt, toolset, history)",
+      "params": "chat_provider: Kimi, system_prompt: str, toolset: Toolset, history: list[Message]",
+      "description": "(kimi-sdk) Async function for tool-calling step. Layers tool dispatch over generate(), returns StepResult with message and tool_results() awaitable. Used for building agent loops."
+    }
+  ]
+}

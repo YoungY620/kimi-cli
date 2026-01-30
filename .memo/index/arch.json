@@ -1,0 +1,230 @@
+{
+  "modules": [
+    {
+      "name": "kimi_cli.cli",
+      "description": "CLI entry point using Typer. Parses command-line arguments and routes to appropriate UI modes (shell/print/acp/wire).",
+      "interfaces": "Entry point for `kimi` command. Creates KimiCLI instance and runs it in shell, print, ACP, or wire mode. Sub-commands: `info`, `mcp`, `term`, `acp`."
+    },
+    {
+      "name": "kimi_cli.app",
+      "description": "Main application class (KimiCLI) that orchestrates configuration loading, model selection, agent loading, and runtime setup.",
+      "interfaces": "KimiCLI.create() factory method, run() for direct Wire output, run_shell() for interactive TUI, run_print() for non-interactive output, run_acp() for ACP server, run_wire_stdio() for Wire over stdio."
+    },
+    {
+      "name": "kimi_cli.soul",
+      "description": "Core agent runtime and soul loop. Contains KimiSoul which is the main agent loop executing LLM steps, tool calls, and context management.",
+      "interfaces": "Soul protocol defines run(), status, available_slash_commands. KimiSoul implements the main agent loop. run_soul() connects soul to UI via Wire. wire_send() for outputting messages."
+    },
+    {
+      "name": "kimi_cli.soul.agent",
+      "description": "Agent and runtime definitions. Runtime holds configuration, LLM, session, approvals, skills, and labor market. Agent wraps system prompt and toolset.",
+      "interfaces": "Runtime.create() builds runtime with skills discovery. load_agent() loads agent from YAML spec. LaborMarket manages fixed and dynamic subagents. Agent holds name, system_prompt, toolset, runtime."
+    },
+    {
+      "name": "kimi_cli.soul.context",
+      "description": "Conversation history management with checkpointing for D-Mail time travel feature. Stores messages in JSONL file backend.",
+      "interfaces": "Context.restore() loads history from file. append_message() adds messages. checkpoint() creates restore point. revert_to() for time travel. clear() resets history."
+    },
+    {
+      "name": "kimi_cli.soul.toolset",
+      "description": "Tool loading, execution, and MCP integration. KimiToolset loads tools by import path, injects dependencies, and manages MCP server connections.",
+      "interfaces": "KimiToolset.load_tools() loads callable tools. load_mcp_tools() connects to MCP servers. handle() executes tool calls. MCPTool wraps MCP protocol tools."
+    },
+    {
+      "name": "kimi_cli.soul.approval",
+      "description": "User approval system for tool actions. Manages approval queue, auto-approve actions, and YOLO mode.",
+      "interfaces": "Approval.request() asks user for permission. fetch_request() gets pending approval. resolve_request() handles response. is_yolo() checks auto-approve mode."
+    },
+    {
+      "name": "kimi_cli.soul.compaction",
+      "description": "Context compaction when conversation exceeds token limits. Summarizes history to fit within model context window.",
+      "interfaces": "SimpleCompaction.compact() summarizes messages using LLM."
+    },
+    {
+      "name": "kimi_cli.wire",
+      "description": "Communication layer between soul and UI using single-producer multiple-consumer (SPMC) pattern. Uses BroadcastQueue for message distribution to multiple UI subscribers.",
+      "interfaces": "Wire class with soul_side and ui_side(merge) factory. WireSoulSide.send() for output. WireUISide.receive() for consuming messages. Multiple UI sides can subscribe to the same Wire. Records to wire.jsonl file.",
+      "internal": {
+        "submodules": [
+          {
+            "name": "types",
+            "description": "Wire message type definitions including events and requests",
+            "interfaces": "Event and Request union types. WireMessageEnvelope for serialization. is_event(), is_request(), is_wire_message() type guards."
+          },
+          {
+            "name": "serde",
+            "description": "Wire message serialization/deserialization",
+            "interfaces": "WireMessageRecord for wire.jsonl records."
+          }
+        ],
+        "relationships": "Wire uses BroadcastQueue for SPMC distribution; WireSoulSide sends to queues; WireUISide subscribes and receives"
+      }
+    },
+    {
+      "name": "kimi_cli.wire.types",
+      "description": "Wire message type definitions including events (TurnBegin, StepBegin, ContentPart, ToolResult) and requests (ApprovalRequest).",
+      "interfaces": "Event and Request union types. WireMessageEnvelope for serialization. is_event(), is_request(), is_wire_message() type guards."
+    },
+    {
+      "name": "kimi_cli.config",
+      "description": "Configuration management. Loads/saves TOML config with LLM providers, models, loop control, and service settings.",
+      "interfaces": "Config model with providers, models, loop_control, services, mcp. load_config() from file. save_config() to file. Supports JSON-to-TOML migration."
+    },
+    {
+      "name": "kimi_cli.tools",
+      "description": "Built-in tools: shell (bash/powershell), file operations (read/write/replace/glob/grep), web (fetch/search), todo, multiagent (Task), dmail, think.",
+      "interfaces": "CallableTool and CallableTool2 interfaces. Tools loaded via import path strings like 'kimi_cli.tools.shell:Shell'. Each tool has markdown description."
+    },
+    {
+      "name": "kimi_cli.tools.multiagent",
+      "description": "Subagent task delegation. Task tool spawns subagents with isolated context for parallel work.",
+      "interfaces": "Task tool params: description, subagent_name, prompt. Runs subagent in fresh context, returns final response. Wraps subagent events in SubagentEvent."
+    },
+    {
+      "name": "kimi_cli.ui.shell",
+      "description": "Interactive shell UI with prompt_toolkit. Handles user input, slash commands, keyboard shortcuts, and rich output rendering.",
+      "interfaces": "Shell class with run() method. Slash command registries for shell-level and soul-level commands. Supports image paste, shell mode toggle, session management."
+    },
+    {
+      "name": "kimi_cli.ui.print",
+      "description": "Non-interactive print UI for scripting. Supports text and stream-json input/output formats.",
+      "interfaces": "Print class with run() method. Input from stdin or --prompt. Output to stdout. final_only mode for just final message."
+    },
+    {
+      "name": "kimi_cli.ui.wire",
+      "description": "Wire server over stdio for external integrations. Uses JSON-RPC-like protocol.",
+      "interfaces": "WireOverStdio class with serve() method. Reads requests from stdin, writes responses to stdout."
+    },
+    {
+      "name": "kimi_cli.acp",
+      "description": "ACP (Agent Communication Protocol) server for IDE integrations like Cursor. Exposes agent capabilities over stdio.",
+      "interfaces": "ACPServer with initialize(), new_session(), prompt(), cancel() etc. Translates ACP protocol to KimiCLI operations."
+    },
+    {
+      "name": "kimi_cli.flow",
+      "description": "Prompt flow execution from D2 or Mermaid flowcharts. Supports task and decision nodes.",
+      "interfaces": "PromptFlow with nodes and edges. parse_d2_flowchart() and parse_mermaid_flowchart() parsers. FlowRunner executes flows."
+    },
+    {
+      "name": "kimi_cli.agentspec",
+      "description": "Agent specification YAML loader. Supports extension, tool lists, subagent definitions, and system prompt templates.",
+      "interfaces": "load_agent_spec() from YAML file. AgentSpec model with name, tools, exclude_tools, subagents, system_prompt_path."
+    },
+    {
+      "name": "kimi_cli.skill",
+      "description": "Skills system for reusable agent capabilities. Discovers skills from directories, registers as slash commands.",
+      "interfaces": "discover_skills_from_roots() finds SKILL.md files. index_skills() builds name->skill mapping. read_skill_text() loads skill content."
+    },
+    {
+      "name": "kimi_cli.session",
+      "description": "Session management for conversation persistence. Creates session directories with context files.",
+      "interfaces": "Session.create(), Session.find(), Session.continue_(), Session.list(). Sessions stored in ~/.kimi/sessions/."
+    },
+    {
+      "name": "kimi_cli.llm",
+      "description": "LLM provider abstraction. Creates chat providers for Kimi, OpenAI, Anthropic, Google, etc.",
+      "interfaces": "create_llm() factory. LLM class wraps chat_provider. augment_provider_with_env_vars() for KIMI_API_KEY etc."
+    },
+    {
+      "name": "kimi_cli.utils",
+      "description": "Utility modules including async primitives, string processing, datetime formatting, and rich text helpers.",
+      "interfaces": "Various utility functions used across the codebase.",
+      "internal": {
+        "submodules": [
+          {
+            "name": "broadcast",
+            "description": "BroadcastQueue for SPMC (single-producer multiple-consumer) async message distribution",
+            "interfaces": "BroadcastQueue.subscribe() returns Queue, publish() sends to all subscribers, shutdown() closes all queues"
+          },
+          {
+            "name": "aioqueue",
+            "description": "Async Queue with shutdown support, compatible with Python < 3.13",
+            "interfaces": "Queue with get/put/shutdown methods. QueueShutDown exception raised on closed queue operations."
+          }
+        ],
+        "relationships": "BroadcastQueue uses aioqueue.Queue internally for each subscriber"
+      }
+    },
+    {
+      "name": "packages/kosong",
+      "description": "LLM framework library. Provides chat providers, message types, tool interfaces, and step execution.",
+      "interfaces": "kosong.step() for LLM inference. ChatProvider protocol. Message, ContentPart, ToolCall types. Toolset for tool management."
+    },
+    {
+      "name": "packages/kaos",
+      "description": "Async filesystem abstraction. Provides KaosPath for unified local/SSH path operations.",
+      "interfaces": "KaosPath with async read/write/exists operations. Supports local filesystem and SSH remotes."
+    },
+    {
+      "name": "tests_ai",
+      "description": "AI-driven test/audit framework using Kimi CLI agents to verify codebase invariants. Contains markdown test specs and agent-based orchestration.",
+      "interfaces": "run.py CLI script executes audits and emits pytest-style results. Test specs (test_*.md) define requirements with Scope and Requirements sections. Agent outputs report.json with pass/fail per case.",
+      "internal": {
+        "submodules": [
+          {
+            "name": "scripts/main.yaml",
+            "description": "Main agent spec that orchestrates test execution by spawning worker subagents in parallel for each test file",
+            "interfaces": "Extends default agent, spawns worker subagents via Task tool, outputs report.json"
+          },
+          {
+            "name": "scripts/worker.yaml",
+            "description": "Worker subagent spec that examines a single test file and reports pass/fail for each case",
+            "interfaces": "Extends default agent, uses D-Mail for context rewinding between cases, returns summary to main agent"
+          },
+          {
+            "name": "scripts/run.py",
+            "description": "Python runner script that invokes the main agent and parses report.json to emit pytest-style output",
+            "interfaces": "CLI: run.py [tests_dir], reads report.json, prints PASSED/FAILED per case with colored summary"
+          }
+        ],
+        "relationships": "run.py → main.yaml agent → worker.yaml subagents → report.json → run.py output"
+      }
+    },
+    {
+      "name": ".kimi/prompts",
+      "description": "Project-local prompt templates for developer workflows. These markdown files are used with Kimi CLI to automate release, PR creation, changelog generation, and documentation tasks.",
+      "interfaces": "Markdown prompt files loaded by developers to guide Kimi CLI through common workflows. Each prompt contains instructions in Chinese describing a multi-step workflow.",
+      "internal": {
+        "submodules": [
+          {
+            "name": "release.md",
+            "description": "Release automation workflow: checks for package changes since last tag, updates version in pyproject.toml, CHANGELOG.md, and docs, creates bump branch, opens PR, and guides through tagging",
+            "interfaces": "Input: none. Output: bump-<package>-<version> branch with version updates, PR created via gh CLI"
+          },
+          {
+            "name": "pr.md",
+            "description": "PR creation workflow: checks for dirty changes, ensures on feature branch, pushes and creates PR with English title/description following commit message conventions",
+            "interfaces": "Input: clean git state on feature branch. Output: PR created via gh CLI with conventional commit title"
+          },
+          {
+            "name": "gen-changelog.md",
+            "description": "Changelog generation: adds entries to CHANGELOG.md based on diff between current branch and main, following existing format",
+            "interfaces": "Input: branch with changes. Output: updated CHANGELOG.md entries"
+          },
+          {
+            "name": "gen-docs.md",
+            "description": "Documentation update workflow: syncs English changelog via script, updates Chinese docs based on code changes, then runs translate-docs.md for bilingual sync",
+            "interfaces": "Input: code changes. Output: updated docs/ with synced EN/CN content"
+          },
+          {
+            "name": "translate-docs.md",
+            "description": "Documentation translation: translates page-by-page ensuring CN/EN sync. Changelog: EN→CN. Other pages: CN→EN. Maintains consistent style while respecting language-specific conventions",
+            "interfaces": "Input: CN docs as source (except changelog). Output: synchronized EN/CN documentation"
+          }
+        ],
+        "relationships": "release.md may call gen-docs.md → translate-docs.md for full release workflow"
+      }
+    },
+    {
+      "name": "flake.nix",
+      "description": "Nix flake for building and packaging kimi-cli. Uses uv2nix to convert Python dependencies from uv.lock to Nix derivations. Provides reproducible builds across platforms.",
+      "interfaces": "nix build .#kimi-cli builds the package. nix run .#kimi-cli runs kimi. Also provides kimi-cli-memo variant with memo MCP pre-configured. Wrapper includes ripgrep in PATH and sets KIMI_CLI_NO_AUTO_UPDATE=1."
+    },
+    {
+      "name": "sdks/kimi-sdk",
+      "description": "Lightweight Python SDK for the Kimi API. Provides async generate() and step() functions for chat completions and tool calling. Re-exports types from kosong library (Kimi provider, Message, tooling types). Version 0.1.1, requires Python 3.12+.",
+      "interfaces": "generate(chat_provider, system_prompt, tools, history) for chat completions. step(chat_provider, system_prompt, toolset, history) for tool calling with StepResult. Kimi class as chat provider. Message, ContentPart, Tool* types for building agent workflows. Env vars: KIMI_API_KEY, KIMI_BASE_URL."
+    }
+  ],
+  "relationships": "## Module Dependencies\n\n```mermaid\ngraph TD\n  cli[kimi_cli.cli] --> app[kimi_cli.app]\n  app --> soul[kimi_cli.soul]\n  app --> config[kimi_cli.config]\n  app --> session[kimi_cli.session]\n  app --> llm[kimi_cli.llm]\n  soul --> agent[kimi_cli.soul.agent]\n  soul --> context[kimi_cli.soul.context]\n  soul --> toolset[kimi_cli.soul.toolset]\n  soul --> approval[kimi_cli.soul.approval]\n  soul --> wire[kimi_cli.wire]\n  wire --> broadcast[kimi_cli.utils.broadcast]\n  wire --> aioqueue[kimi_cli.utils.aioqueue]\n  agent --> agentspec[kimi_cli.agentspec]\n  agent --> skill[kimi_cli.skill]\n  toolset --> tools[kimi_cli.tools]\n  toolset --> mcp[MCP via fastmcp]\n  app --> ui_shell[kimi_cli.ui.shell]\n  app --> ui_print[kimi_cli.ui.print]\n  app --> ui_acp[kimi_cli.acp]\n  app --> ui_wire[kimi_cli.ui.wire]\n  llm --> kosong[packages/kosong]\n  tools --> kaos[packages/kaos]\n```\n\n## Key Relationships\n\n- **CLI -> App**: Entry point creates KimiCLI and runs in appropriate UI mode\n- **App -> Soul**: KimiCLI creates KimiSoul which runs the main agent loop\n- **Soul -> Wire**: Soul sends events/requests to UI via Wire message passing\n- **Wire -> BroadcastQueue**: Wire uses BroadcastQueue for SPMC distribution to multiple UI subscribers\n- **Soul -> Toolset**: KimiSoul executes tool calls through KimiToolset\n- **Toolset -> Tools**: Built-in tools and MCP tools loaded by KimiToolset\n- **Agent -> LaborMarket**: Fixed subagents loaded from agent spec, dynamic subagents created via Task tool\n- **Context -> Session**: Context file persisted in session directory\n- **LLM -> kosong**: Chat providers from kosong library"
+}

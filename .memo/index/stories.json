@@ -1,0 +1,84 @@
+{
+  "stories": [
+    {
+      "title": "CLI Startup and Session Creation",
+      "tags": ["call-chain", "cli", "startup"],
+      "content": "User runs `kimi` command. The CLI module (cli/__init__.py) parses arguments via Typer. It determines UI mode (shell/print/acp/wire), loads config from ~/.kimi/config.toml or --config flag, and creates or continues a Session. KimiCLI.create() is called which: loads config, creates LLM from provider settings, creates Runtime with environment detection and skills discovery, loads agent from YAML spec, restores Context from session file, and instantiates KimiSoul. Finally, the appropriate run method (run_shell, run_print, run_acp, run_wire_stdio) is called."
+    },
+    {
+      "title": "Interactive Shell Conversation",
+      "tags": ["user-story", "shell", "conversation"],
+      "content": "User types a message in shell UI. The Shell class reads input via prompt_toolkit, checks for slash commands (starting with /), and if not a command, passes the input to KimiSoul.run(). The soul creates a TurnBegin wire event, appends user message to Context, then enters _agent_loop(). Each step: creates StepBegin event, compacts context if near token limit, calls kosong.step() for LLM inference, streams ContentPart and ToolCallPart events, executes tool calls via KimiToolset, sends ToolResult events, and repeats until no more tool calls. UI receives wire events and renders them with rich formatting."
+    },
+    {
+      "title": "Tool Execution with Approval",
+      "tags": ["call-chain", "tools", "approval"],
+      "content": "During agent step, LLM returns a ToolCall for Shell tool. KimiToolset.handle() is called, which looks up the tool by name and calls tool.call(arguments). The Shell tool implementation calls Approval.request('Shell', 'shell:bash', description). If yolo mode is off and action not auto-approved, request is queued and ApprovalRequest sent to wire. UI shows the request and user chooses approve/reject/approve_for_session. Response resolves the future in Approval. If approved, tool executes the bash command and returns ToolOk/ToolError. Result becomes ToolResult wire event and is appended to Context."
+    },
+    {
+      "title": "Subagent Task Delegation",
+      "tags": ["call-chain", "multiagent", "subagent"],
+      "content": "Main agent calls Task tool with {subagent_name: 'coder', prompt: 'Fix the bug'}. Task tool looks up subagent from LaborMarket (either fixed from agent spec or dynamic). It creates a fresh Context file, instantiates new KimiSoul with subagent's Agent. Subagent runs in isolated context via run_soul(). Subagent's wire events are wrapped in SubagentEvent and forwarded to main wire. ApprovalRequests from subagent bubble up to root wire for user interaction. When subagent completes, final response is extracted and returned as ToolOk."
+    },
+    {
+      "title": "D-Mail Time Travel Feature",
+      "tags": ["user-story", "dmail", "checkpoint"],
+      "content": "Agent calls SendDMail tool to send a message to past self. DenwaRenji stores the D-Mail with target checkpoint_id. After tool results are processed, KimiSoul checks for pending D-Mail. If found, BackToTheFuture exception is raised with checkpoint_id and the D-Mail content wrapped as a system message. _agent_loop catches this, calls context.revert_to(checkpoint_id) which rotates context file and restores history up to checkpoint. D-Mail message is appended, and loop continues from that point with agent having future knowledge."
+    },
+    {
+      "title": "Context Compaction",
+      "tags": ["call-chain", "context", "compaction"],
+      "content": "Before each step, KimiSoul checks if context token_count + reserved_tokens >= max_context_size. If so, compact_context() is called. It sends CompactionBegin wire event, calls SimpleCompaction.compact() which uses LLM to summarize the conversation history, clears context, creates new checkpoint, appends compacted messages, then sends CompactionEnd event. This allows long conversations to continue within model's context limit."
+    },
+    {
+      "title": "MCP Tool Loading",
+      "tags": ["call-chain", "mcp", "tools"],
+      "content": "During agent loading, if mcp_configs provided, KimiToolset.load_mcp_tools() is called. For each MCP server config, a fastmcp.Client is created with the server connection details. load_mcp_tools() spawns a background task that connects to each server, calls list_tools(), wraps each MCP tool as MCPTool (extending CallableTool), and adds to toolset. When called, MCPTool requests approval, then calls client.call_tool() with timeout. Results are converted from MCP format to kosong ToolReturnValue."
+    },
+    {
+      "title": "Slash Command Execution",
+      "tags": ["user-story", "slash-command", "shell"],
+      "content": "User types /help in shell. Shell checks available_slash_commands which combines soul-level commands (from soul/slash.py), shell-level commands (from ui/shell/slash.py), and skill commands (from runtime.skills). The command lookup finds 'help' command registered via @registry.command decorator. Shell calls the command function with (shell_instance, args_string). For /setup, it runs interactive model configuration. For /model, shows model selector. For /sessions, lists and switches sessions. For /skill:<name>, loads skill SKILL.md and runs as user prompt."
+    },
+    {
+      "title": "ACP Server Integration",
+      "tags": ["user-story", "acp", "ide-integration"],
+      "content": "IDE like Cursor starts `kimi acp` process. ACPServer initializes with agent capabilities (image support, MCP, session list). IDE sends new_session request with cwd and mcp_servers. Server creates Session, KimiCLI instance, and ACPSession. When IDE sends prompt request, ACPSession converts ACP content blocks to Kimi format, runs KimiSoul via run_soul(), converts wire events back to ACP events for streaming response. Model switching via set_session_model reloads LLM and saves to config."
+    },
+    {
+      "title": "Prompt Flow Execution",
+      "tags": ["user-story", "prompt-flow", "automation"],
+      "content": "User runs `kimi --prompt-flow workflow.d2`. CLI parses the D2 flowchart into PromptFlow with nodes (begin/end/task/decision) and edges. FlowRunner is created and /begin command added. On /begin, runner starts at BEGIN node, follows edges. For task nodes, it runs soul turn with node label as prompt. For decision nodes, it adds available choices to prompt and expects <choice>...</choice> in response. Matched choice determines next edge. Loop continues until END node or max_moves reached."
+    },
+    {
+      "title": "Skills Discovery and Execution",
+      "tags": ["call-chain", "skills", "customization"],
+      "content": "During Runtime.create(), discover_skills_from_roots() scans builtin skills dir and ~/.kimi/skills/ for SKILL.md files. Each skill directory with SKILL.md is parsed for name (directory name) and description (from frontmatter or first paragraph). Skills are indexed by name and formatted for KIMI_SKILLS system prompt arg. KimiSoul._build_slash_commands() adds each skill as /skill:<name> command. Running the command loads SKILL.md content and passes to soul as user message, effectively activating the skill's instructions."
+    },
+    {
+      "title": "Ralph Loop Mode",
+      "tags": ["user-story", "ralph", "automation"],
+      "content": "User runs `kimi --max-ralph-iterations 3 'Fix all tests'`. When max_ralph_iterations != 0 and no prompt_flow, FlowRunner.ralph_loop() creates a special flow: task node with user prompt, decision node asking CONTINUE/STOP. The loop runs: execute prompt, then ask agent to decide. If CONTINUE, re-run prompt with note about automated loop. If STOP, exit. This allows agent to iterate on a task multiple times autonomously, stopping when it believes the task is complete."
+    },
+    {
+      "title": "Wire SPMC Message Distribution",
+      "tags": ["call-chain", "wire", "architecture"],
+      "content": "Wire uses a single-producer multiple-consumer (SPMC) pattern via BroadcastQueue. When Wire is created, it initializes two BroadcastQueues: one for raw messages, one for merged messages. WireSoulSide.send() publishes to both queues - raw messages go directly to raw_queue, while mergeable messages (like streaming text) are buffered and sent to merged_queue when complete. UI components call Wire.ui_side(merge=True/False) to subscribe to either queue, returning a WireUISide that receives messages via its subscription. Multiple UIs can subscribe simultaneously, enabling features like parallel recording to wire.jsonl while displaying in shell UI."
+    },
+    {
+      "title": "AI-Driven Codebase Audit",
+      "tags": ["user-story", "testing", "multiagent"],
+      "content": "Developer runs `python tests_ai/scripts/run.py` to audit codebase invariants. The script invokes `kimi --yolo --agent-file main.yaml` with the tests directory. The main agent (main.yaml) globs all test_*.md files, then spawns a worker subagent (worker.yaml) for each test file in parallel via Task tool. Each worker reads its assigned test file, examines the codebase according to Scope/Requirements sections, uses D-Mail to rewind context between cases, and reports pass/fail summary back to main agent. Main agent collects results from all workers and writes report.json. Finally, run.py parses report.json and prints pytest-style output: each case shows PASSED/FAILED with colors, followed by a summary line showing total passed/failed count and duration."
+    },
+    {
+      "title": "Developer Release Workflow with Prompts",
+      "tags": ["user-story", "release", "developer-workflow"],
+      "content": "Developer loads .kimi/prompts/release.md to automate a release. Kimi first reads AGENTS.md and release workflows to understand the process. It checks each package (packages/, sdks/, root) for changes since last git tag. For changed packages, it prompts developer to confirm new semantic version, then updates pyproject.toml, CHANGELOG.md (preserving Unreleased section), and breaking-changes.md in docs. After running uv sync, it triggers gen-docs.md workflow for documentation sync. Finally, it creates a bump-<package>-<version> branch, commits changes, pushes, and opens a PR via gh CLI. Developer is guided to merge PR and given the git tag command to finalize the release."
+    },
+    {
+      "title": "Building Agent Loops with Kimi SDK",
+      "tags": ["user-story", "sdk", "agent-development"],
+      "content": "Developer uses kimi-sdk to build a custom agent. First, create a Kimi provider with API credentials and model name. Define tools by subclassing CallableTool2 with Pydantic params and async __call__ returning ToolOk/ToolError. Add tools to SimpleToolset. In the agent loop: append user message to history, call step() with provider, system prompt, toolset, and history. step() returns StepResult containing the assistant message and tool_calls. Await result.tool_results() to get ToolResult objects. Convert tool results to tool role messages and append to history. Check if there are tool_calls - if yes, loop again; if no, the turn is complete. Extract text from result.message for display. The SDK handles all streaming, message merging, and tool dispatch internally."
+    }
+  ]
+}
